@@ -116,8 +116,20 @@ export class TauriDriver {
 
   /**
    * Click an element by CSS selector.
-   * `button` selects the mouse button ('left' | 'right' | 'middle'); right/middle
-   * go through the WebDriver Actions API so context menus fire.
+   *
+   * `button` selects the mouse button ('left' | 'right' | 'middle'). Right and
+   * middle clicks go through the WebDriver Actions API so native context menus
+   * fire.
+   *
+   * Left clicks are dispatched as an explicit DOM event sequence
+   * (pointerdown → mousedown → pointerup → mouseup → click) rather than the
+   * Actions API. WebKitGTK fails to synthesize a `click` event when an element
+   * mutates the DOM under the pointer on mousedown — e.g. ripple effects that
+   * insert child nodes change the down/up target's node identity — so the
+   * browser-synthesized click is dropped and React's onClick never runs. The
+   * "+" new-session button (onMouseDown ripple) hit exactly this. Dispatching
+   * the sequence ourselves guarantees the click while still delivering
+   * mousedown/mouseup for ripples and other press handlers.
    */
   async clickElement(
     selector: string,
@@ -130,7 +142,34 @@ export class TauriDriver {
       throw new Error(`Element not found: ${selector}`);
     }
 
-    await element.click({ button });
+    if (button !== 'left') {
+      await element.click({ button });
+      return;
+    }
+
+    // Run in the page as a string script (the project's tsconfig has no DOM lib).
+    // The selector is inlined as a JSON literal so we don't depend on how
+    // execute() forwards extra arguments.
+    const sel = JSON.stringify(selector);
+    const script = `
+      var el = document.querySelector(${sel});
+      if (!el) throw new Error('Element vanished before click: ' + ${sel});
+      el.scrollIntoView({ block: 'center', inline: 'center' });
+      var rect = el.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+      function opts(extra) {
+        var o = { bubbles: true, cancelable: true, composed: true, view: window, button: 0, clientX: cx, clientY: cy };
+        for (var k in extra) o[k] = extra[k];
+        return o;
+      }
+      el.dispatchEvent(new PointerEvent('pointerdown', opts({ pointerId: 1, isPrimary: true, buttons: 1 })));
+      el.dispatchEvent(new MouseEvent('mousedown', opts({ buttons: 1 })));
+      if (el.focus) el.focus();
+      el.dispatchEvent(new PointerEvent('pointerup', opts({ pointerId: 1, isPrimary: true, buttons: 0 })));
+      el.dispatchEvent(new MouseEvent('mouseup', opts({ buttons: 0 })));
+      el.dispatchEvent(new MouseEvent('click', opts({ buttons: 0, detail: 1 })));
+    `;
+    await this.appState.browser!.execute(script);
   }
 
   /**
