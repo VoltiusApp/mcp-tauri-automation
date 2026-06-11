@@ -3,7 +3,7 @@
  * Manages WebDriver connection to Tauri applications
  */
 
-import { remote } from 'webdriverio';
+import { remote, Key } from 'webdriverio';
 import type { AppState, LaunchAppParams, TauriAutomationConfig } from './types.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -134,7 +134,11 @@ export class TauriDriver {
   }
 
   /**
-   * Type text into an element
+   * Type text into an element.
+   *
+   * Newlines in `text` are sent as real Enter keypresses (not literal "\n"
+   * characters), so multi-line input like "ls\nls\n" submits two commands in a
+   * terminal. Use this for typing; use pressKey() for bare keys/chords.
    */
   async typeText(selector: string, text: string, clear: boolean = false): Promise<void> {
     this.ensureAppRunning();
@@ -148,7 +152,75 @@ export class TauriDriver {
       await element.clearValue();
     }
 
-    await element.setValue(text);
+    // Split on newlines: type each segment, press Enter between segments. This
+    // makes "\n" mean "submit this line" (the natural expectation for a shell)
+    // instead of being swallowed by setValue.
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].length > 0) {
+        await element.addValue(lines[i]);
+      }
+      if (i < lines.length - 1) {
+        await this.appState.browser!.keys(Key.Enter);
+      }
+    }
+  }
+
+  /**
+   * Map of friendly key names → WebDriver special-key values. Anything not in
+   * this map is sent as a literal character (e.g. "l" for Ctrl+L).
+   */
+  private static readonly KEY_MAP: Record<string, string> = {
+    enter: Key.Enter,
+    return: Key.Return,
+    tab: Key.Tab,
+    escape: Key.Escape,
+    esc: Key.Escape,
+    backspace: Key.Backspace,
+    delete: Key.Delete,
+    del: Key.Delete,
+    space: Key.Space,
+    up: Key.ArrowUp,
+    down: Key.ArrowDown,
+    left: Key.ArrowLeft,
+    right: Key.ArrowRight,
+    arrowup: Key.ArrowUp,
+    arrowdown: Key.ArrowDown,
+    arrowleft: Key.ArrowLeft,
+    arrowright: Key.ArrowRight,
+    home: Key.Home,
+    end: Key.End,
+    pageup: Key.PageUp,
+    pagedown: Key.PageDown,
+    ctrl: Key.Ctrl,
+    control: Key.Ctrl,
+    alt: Key.Alt,
+    shift: Key.Shift,
+    meta: Key.Command,
+    cmd: Key.Command,
+    command: Key.Command,
+  };
+
+  /**
+   * Press a key or a key chord (e.g. ["Control", "l"] for Ctrl+L, "Enter",
+   * "ArrowUp"). Modifiers in an array are held while the rest are pressed, then
+   * all are released — the standard WebDriver chord behavior. Optionally focus
+   * `selector` first.
+   */
+  async pressKey(keys: string | string[], selector?: string): Promise<void> {
+    this.ensureAppRunning();
+
+    if (selector) {
+      const element = await this.appState.browser!.$(selector);
+      if (!(await element.isExisting())) {
+        throw new Error(`Element not found: ${selector}`);
+      }
+      await element.click();
+    }
+
+    const list = Array.isArray(keys) ? keys : [keys];
+    const resolved = list.map((k) => TauriDriver.KEY_MAP[k.toLowerCase()] ?? k);
+    await this.appState.browser!.keys(resolved);
   }
 
   /**

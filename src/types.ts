@@ -81,6 +81,16 @@ export interface TypeTextParams {
 }
 
 /**
+ * Press key parameters
+ */
+export interface PressKeyParams {
+  /** A single key/friendly name, or an array forming a chord (e.g. ["Control","l"]) */
+  keys: string | string[];
+  /** Optional CSS selector to focus before pressing */
+  selector?: string;
+}
+
+/**
  * Wait for element parameters
  */
 export interface WaitForElementParams {

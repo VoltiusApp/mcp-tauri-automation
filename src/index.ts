@@ -16,7 +16,7 @@ import {
 import { TauriDriver } from './tauri-driver.js';
 import { launchApp, closeApp, getAppState } from './tools/launch.js';
 import { captureScreenshot } from './tools/screenshot.js';
-import { clickElement, typeText, waitForElement, getElementText } from './tools/interact.js';
+import { clickElement, typeText, pressKey, waitForElement, getElementText } from './tools/interact.js';
 import { executeTauriCommand } from './tools/state.js';
 import type { TauriAutomationConfig } from './types.js';
 
@@ -130,7 +130,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             text: {
               type: 'string',
-              description: 'Text to type into the element',
+              description: 'Text to type. Newlines ("\\n") are sent as Enter keypresses, so multi-line input submits multiple lines (e.g. in a terminal).',
             },
             clear: {
               type: 'boolean',
@@ -139,6 +139,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['selector', 'text'],
+        },
+      },
+      {
+        name: 'press_key',
+        description: 'Press a key or key chord that type_text cannot send: Enter, Tab, Escape, Backspace, arrows, Home/End, or modifier chords like Ctrl+C / Ctrl+L. Sends to the focused element (pass a selector to focus first).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            keys: {
+              oneOf: [
+                { type: 'string' },
+                { type: 'array', items: { type: 'string' } },
+              ],
+              description: 'A single key ("Enter", "ArrowUp", "Escape") or an array forming a chord where leading entries are modifiers, e.g. ["Control","c"] for Ctrl+C, ["Control","l"] for Ctrl+L.',
+            },
+            selector: {
+              type: 'string',
+              description: 'Optional CSS selector to click/focus before pressing the key.',
+            },
+          },
+          required: ['keys'],
         },
       },
       {
@@ -278,6 +299,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'type_text': {
         const result = await typeText(driver, args as any);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'press_key': {
+        const result = await pressKey(driver, args as any);
         return {
           content: [
             {
