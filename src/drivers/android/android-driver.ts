@@ -152,10 +152,13 @@ export class AndroidDriver implements AutomationDriver {
   }
 
   async executeTauriCommand(command: string, args: Record<string, unknown> = {}): Promise<unknown> {
+    // Tauri v2 only exposes window.__TAURI__ when `withGlobalTauri` is set; otherwise the
+    // invoke bridge lives at window.__TAURI_INTERNALS__.invoke. Try both.
     return this.evalJs(
       `(() => { const t = window.__TAURI__;
-         const invoke = (t && t.core && t.core.invoke) || (t && t.invoke);
-         if (!invoke) throw new Error('Tauri API not found on window.__TAURI__');
+         const invoke = (t && t.core && t.core.invoke) || (t && t.invoke)
+           || (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke);
+         if (!invoke) throw new Error('Tauri invoke not found (no __TAURI__ or __TAURI_INTERNALS__)');
          return invoke(${JSON.stringify(command)}, ${JSON.stringify(args)}); })()`);
   }
 }
