@@ -2,14 +2,14 @@
  * Screenshot capture tools
  */
 
-import type { TauriDriver } from '../tauri-driver.js';
+import type { AutomationDriver } from '../drivers/automation-driver.js';
 import type { ScreenshotParams, ToolResponse } from '../types.js';
 
 /**
  * Capture a screenshot of the application
  */
 export async function captureScreenshot(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: ScreenshotParams = {}
 ): Promise<ToolResponse<{ path?: string; base64?: string; message: string }>> {
   try {

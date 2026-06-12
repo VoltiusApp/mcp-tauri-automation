@@ -2,14 +2,14 @@
  * Application state and command execution tools
  */
 
-import type { TauriDriver } from '../tauri-driver.js';
+import type { AutomationDriver } from '../drivers/automation-driver.js';
 import type { ExecuteTauriCommandParams, ToolResponse } from '../types.js';
 
 /**
  * Execute a Tauri IPC command
  */
 export async function executeTauriCommand(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: ExecuteTauriCommandParams
 ): Promise<ToolResponse<{ result: unknown }>> {
   try {

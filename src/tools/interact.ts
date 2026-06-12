@@ -2,14 +2,14 @@
  * UI interaction tools
  */
 
-import type { TauriDriver } from '../tauri-driver.js';
+import type { AutomationDriver } from '../drivers/automation-driver.js';
 import type { ElementSelector, TypeTextParams, PressKeyParams, WaitForElementParams, ToolResponse } from '../types.js';
 
 /**
  * Click an element by CSS selector
  */
 export async function clickElement(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: ElementSelector
 ): Promise<ToolResponse<{ message: string }>> {
   try {
@@ -34,7 +34,7 @@ export async function clickElement(
  * Type text into an input element
  */
 export async function typeText(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: TypeTextParams
 ): Promise<ToolResponse<{ message: string }>> {
   try {
@@ -58,7 +58,7 @@ export async function typeText(
  * Press a key or key chord (e.g. Enter, Ctrl+C, Ctrl+L, ArrowUp)
  */
 export async function pressKey(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: PressKeyParams
 ): Promise<ToolResponse<{ message: string }>> {
   try {
@@ -83,7 +83,7 @@ export async function pressKey(
  * Wait for an element to appear
  */
 export async function waitForElement(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: WaitForElementParams
 ): Promise<ToolResponse<{ message: string }>> {
   try {
@@ -107,7 +107,7 @@ export async function waitForElement(
  * Get text content of an element
  */
 export async function getElementText(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: ElementSelector
 ): Promise<ToolResponse<{ text: string }>> {
   try {

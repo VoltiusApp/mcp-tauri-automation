@@ -2,14 +2,14 @@
  * Launch and lifecycle tools
  */
 
-import type { TauriDriver } from '../tauri-driver.js';
+import type { AutomationDriver } from '../drivers/automation-driver.js';
 import type { LaunchAppParams, ToolResponse } from '../types.js';
 
 /**
  * Launch the Tauri application
  */
 export async function launchApp(
-  driver: TauriDriver,
+  driver: AutomationDriver,
   params: LaunchAppParams
 ): Promise<ToolResponse<{ message: string; sessionId?: string }>> {
   try {
@@ -35,7 +35,7 @@ export async function launchApp(
  * Close the Tauri application
  */
 export async function closeApp(
-  driver: TauriDriver
+  driver: AutomationDriver
 ): Promise<ToolResponse<{ message: string }>> {
   try {
     await driver.closeApp();
@@ -58,7 +58,7 @@ export async function closeApp(
  * Get current application state
  */
 export async function getAppState(
-  driver: TauriDriver
+  driver: AutomationDriver
 ): Promise<ToolResponse<{
   isRunning: boolean;
   appPath?: string;
