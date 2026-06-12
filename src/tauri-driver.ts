@@ -5,10 +5,11 @@
 
 import { remote, Key } from 'webdriverio';
 import type { AppState, LaunchAppParams, TauriAutomationConfig } from './types.js';
+import type { AutomationDriver, MouseButton } from './drivers/automation-driver.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-export class TauriDriver {
+export class TauriDriver implements AutomationDriver {
   private config: Required<TauriAutomationConfig>;
   private appState: AppState;
 
@@ -133,7 +134,7 @@ export class TauriDriver {
    */
   async clickElement(
     selector: string,
-    button: 'left' | 'right' | 'middle' = 'left'
+    button: MouseButton = 'left'
   ): Promise<void> {
     this.ensureAppRunning();
 
