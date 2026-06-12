@@ -299,11 +299,16 @@ export class TauriDriver implements AutomationDriver {
     this.ensureAppRunning();
 
     try {
-      // Execute JavaScript in the Tauri window to call the command
+      // Execute JavaScript in the Tauri window to call the command.
+      // Prefer Tauri v2 (window.__TAURI__.core.invoke); fall back to v1 (window.__TAURI__.invoke).
       const result = await this.appState.browser!.execute(
         (cmd: string, cmdArgs: Record<string, unknown>) => {
           // @ts-ignore - Tauri's invoke function is injected globally
-          return window.__TAURI__?.invoke(cmd, cmdArgs);
+          const t = window.__TAURI__;
+          // @ts-ignore
+          const invoke = (t && t.core && t.core.invoke) || (t && t.invoke);
+          if (!invoke) throw new Error('Tauri API not found on window.__TAURI__');
+          return invoke(cmd, cmdArgs);
         },
         command,
         args

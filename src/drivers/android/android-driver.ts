@@ -21,19 +21,26 @@ export class AndroidDriver implements AutomationDriver {
   }
 
   async launchApp(_params: LaunchAppParams): Promise<void> {
+    if (this.state.isRunning) throw new Error('Application is already running. Close it first.');
     await this.adb.startActivity(`${this.cfg.appId}/${this.cfg.mainActivity}`);
     let pid: number | null = null;
     for (let i = 0; i < 30 && pid === null; i++) {
-      pid = await this.adb.webviewPid();
-      if (pid === null) await new Promise(r => setTimeout(r, 500));
+      const wv = await this.adb.webviewPid();
+      if (wv !== null && wv === await this.adb.pidOf(this.cfg.appId)) { pid = wv; break; }
+      await new Promise(r => setTimeout(r, 500));
     }
     if (pid === null) throw new Error('WebView debugging socket not found (is this a --debug build?)');
-    await this.adb.forward(this.cfg.forwardPort, pid);
-    this.cdp = await CDP({ port: this.cfg.forwardPort });
-    await this.cdp.Page.enable();
-    await this.cdp.Runtime.enable();
-    await this.cdp.DOM.enable();
-    this.state = { isRunning: true, browser: null, appPath: this.cfg.appId, sessionId: String(pid) };
+    try {
+      await this.adb.forward(this.cfg.forwardPort, pid);
+      this.cdp = await CDP({ port: this.cfg.forwardPort });
+      await this.cdp.Page.enable();
+      await this.cdp.Runtime.enable();
+      await this.cdp.DOM.enable();
+      this.state = { isRunning: true, browser: null, appPath: this.cfg.appId, sessionId: String(pid) };
+    } catch (e) {
+      await this.closeApp();
+      throw e;
+    }
   }
 
   async closeApp(): Promise<void> {
@@ -59,7 +66,8 @@ export class AndroidDriver implements AutomationDriver {
     return result.value as T;
   }
 
-  async captureScreenshot(_filename?: string, _returnBase64 = true): Promise<string> {
+  async captureScreenshot(_filename?: string, returnBase64 = true): Promise<string> {
+    if (returnBase64 === false) throw new Error('Android screenshot supports base64 only (returnBase64=false not supported)');
     const png = await this.adb.screencapPng();
     return png.toString('base64');
   }
@@ -133,6 +141,9 @@ export class AndroidDriver implements AutomationDriver {
 
   async executeTauriCommand(command: string, args: Record<string, unknown> = {}): Promise<unknown> {
     return this.evalJs(
-      `window.__TAURI__.core.invoke(${JSON.stringify(command)}, ${JSON.stringify(args)})`);
+      `(() => { const t = window.__TAURI__;
+         const invoke = (t && t.core && t.core.invoke) || (t && t.invoke);
+         if (!invoke) throw new Error('Tauri API not found on window.__TAURI__');
+         return invoke(${JSON.stringify(command)}, ${JSON.stringify(args)}); })()`);
   }
 }

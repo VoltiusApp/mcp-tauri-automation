@@ -16,3 +16,8 @@ test('parseWebviewPid returns null when absent', () => {
 test('mapToDeviceCoords scales CSS px by devicePixelRatio', () => {
   assert.deepStrictEqual(mapToDeviceCoords(100, 200, 3), { x: 300, y: 600 });
 });
+
+test('parseWebviewPid returns the first pid when multiple sockets exist', () => {
+  const out = '@webview_devtools_remote_1111\n@webview_devtools_remote_2222\n';
+  assert.strictEqual(parseWebviewPid(out), 1111);
+});

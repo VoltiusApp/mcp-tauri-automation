@@ -81,7 +81,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Optional environment variables to set for the application',
             },
           },
-          required: ['appPath'],
+          required: [],
         },
       },
       {

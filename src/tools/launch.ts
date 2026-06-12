@@ -19,7 +19,7 @@ export async function launchApp(
     return {
       success: true,
       data: {
-        message: `Application launched successfully: ${params.appPath}`,
+        message: `Application launched successfully: ${state.appPath}`,
         sessionId: state.sessionId,
       },
     };
