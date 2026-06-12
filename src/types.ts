@@ -125,4 +125,7 @@ export interface AndroidConfig {
   mainActivity?: string;
   serial?: string;
   forwardPort?: number;
+  /** Host the CDP client connects to. Defaults to the adb-server host (derived from
+   *  ADB_SERVER_SOCKET) so a remote/Windows-hosted adb server works, else 127.0.0.1. */
+  cdpHost?: string;
 }

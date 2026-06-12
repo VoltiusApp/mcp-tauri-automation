@@ -3,6 +3,15 @@ import { Adb, mapToDeviceCoords } from './adb.js';
 import type { AutomationDriver, MouseButton } from '../automation-driver.js';
 import type { AppState, LaunchAppParams, AndroidConfig } from '../../types.js';
 
+/** `adb forward` is created by the adb *server*, so the local port opens on the server host,
+ *  not on this machine. With a remote/Windows-hosted server (ADB_SERVER_SOCKET=tcp:<ip>:<port>)
+ *  the CDP client must connect to <ip>, not 127.0.0.1. Returns the host, or undefined if adb is
+ *  local (unix socket / unset) — caller then falls back to 127.0.0.1. */
+export function cdpHostFromAdbSocket(socket: string | undefined): string | undefined {
+  const m = socket?.match(/^tcp:(\[[^\]]+\]|[^:]+):\d+$/i);
+  return m ? m[1] : undefined;
+}
+
 export class AndroidDriver implements AutomationDriver {
   private adb: Adb;
   private cfg: Required<AndroidConfig>;
@@ -16,6 +25,7 @@ export class AndroidDriver implements AutomationDriver {
       mainActivity: cfg.mainActivity ?? '.MainActivity',
       serial: cfg.serial ?? '',
       forwardPort: cfg.forwardPort ?? 9222,
+      cdpHost: cfg.cdpHost ?? cdpHostFromAdbSocket(process.env.ADB_SERVER_SOCKET) ?? '127.0.0.1',
     };
     this.adb = new Adb(this.cfg.adbPath, this.cfg.serial || undefined);
   }
@@ -32,7 +42,9 @@ export class AndroidDriver implements AutomationDriver {
     if (pid === null) throw new Error('WebView debugging socket not found (is this a --debug build?)');
     try {
       await this.adb.forward(this.cfg.forwardPort, pid);
-      this.cdp = await CDP({ port: this.cfg.forwardPort });
+      // local:true → build the ws URL from host:port we pass, ignoring the device's
+      // self-reported (localhost) webSocketDebuggerUrl, which is wrong across a remote forward.
+      this.cdp = await CDP({ host: this.cfg.cdpHost, port: this.cfg.forwardPort, local: true });
       await this.cdp.Page.enable();
       await this.cdp.Runtime.enable();
       await this.cdp.DOM.enable();

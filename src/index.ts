@@ -40,6 +40,7 @@ const driver: AutomationDriver = platform === 'android'
       mainActivity: process.env.ANDROID_MAIN_ACTIVITY,
       serial: process.env.ANDROID_SERIAL,
       forwardPort: process.env.ANDROID_FORWARD_PORT ? Number(process.env.ANDROID_FORWARD_PORT) : undefined,
+      cdpHost: process.env.ANDROID_CDP_HOST,
     })
   : new TauriDriver(config);
 
