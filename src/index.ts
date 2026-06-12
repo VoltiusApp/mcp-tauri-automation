@@ -14,6 +14,8 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { TauriDriver } from './tauri-driver.js';
+import { AndroidDriver } from './drivers/android/android-driver.js';
+import type { AutomationDriver } from './drivers/automation-driver.js';
 import { launchApp, closeApp, getAppState } from './tools/launch.js';
 import { captureScreenshot } from './tools/screenshot.js';
 import { clickElement, typeText, pressKey, waitForElement, getElementText } from './tools/interact.js';
@@ -29,8 +31,17 @@ const config: TauriAutomationConfig = {
   tauriDriverPath: process.env.TAURI_DRIVER_PATH,
 };
 
-// Initialize driver
-const driver = new TauriDriver(config);
+// Initialize driver based on PLATFORM env
+const platform = (process.env.PLATFORM ?? 'desktop').toLowerCase();
+const driver: AutomationDriver = platform === 'android'
+  ? new AndroidDriver({
+      adbPath: process.env.ANDROID_ADB_PATH,
+      appId: process.env.ANDROID_APP_ID,
+      mainActivity: process.env.ANDROID_MAIN_ACTIVITY,
+      serial: process.env.ANDROID_SERIAL,
+      forwardPort: process.env.ANDROID_FORWARD_PORT ? Number(process.env.ANDROID_FORWARD_PORT) : undefined,
+    })
+  : new TauriDriver(config);
 
 // Create MCP server
 const server = new Server(
@@ -51,7 +62,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'launch_app',
-        description: 'Launch a Tauri application via tauri-driver. The tauri-driver must be running on the configured port (default: 4444).',
+        description: 'Launch the app. Desktop: via tauri-driver (needs tauri-driver running). Android: via adb (starts the activity and attaches to the WebView CDP socket). appPath is ignored on Android (configured by env).',
         inputSchema: {
           type: 'object',
           properties: {
