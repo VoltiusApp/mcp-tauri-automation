@@ -118,3 +118,11 @@ export interface ToolResponse<T = unknown> {
   data?: T;
   error?: string;
 }
+
+export interface AndroidConfig {
+  adbPath?: string;
+  appId?: string;
+  mainActivity?: string;
+  serial?: string;
+  forwardPort?: number;
+}
