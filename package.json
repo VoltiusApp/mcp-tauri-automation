@@ -24,7 +24,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "webdriverio": "^9.2.14",
+    "webdriverio": "^10.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -32,6 +32,6 @@
     "typescript": "^5.7.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.19.0"
   }
 }

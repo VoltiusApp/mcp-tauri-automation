@@ -442,7 +442,7 @@ src/
 
 ## Requirements
 
-- **Node.js** 18+
+- **Node.js** 22.19+
 - **Rust/Cargo** (for tauri-driver)
 - **tauri-driver** installed and running
 - A **built Tauri application** to test
